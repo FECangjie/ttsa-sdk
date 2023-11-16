@@ -1,0 +1,32 @@
+{
+  "errorMessage": [
+    {
+      "error_code": 10010,
+      "error_reason": "不能同时支持trtc模式和wtrr模式" // 小程序场景
+    },
+    {
+      "error_code": 10011,
+      "error_reason": "初始化异常，请退出重试" // 小程序场景
+    },
+    {
+      "error_code": 10012,
+      "error_reason": "企业数字人在线数量达到上限"
+    },
+    {
+      "error_code": 10013,
+      "error_reason": "单个数字人在线数量达到上限"
+    },
+    {
+      "error_code": 10014,
+      "error_reason": "资源占用中，请稍后再试"
+    },
+    {
+      "error_code": 300101,
+      "error_reason": "资源占用中，请稍后再试"
+    },
+    {
+      "error_code": 300103,
+      "error_reason": "数字人链接长时间无操作"
+    }
+  ]
+}

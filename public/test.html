@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>video播放问题</title>
+    <style>
+    #demo{
+        height: 500px;
+        width: 1400px;
+    }
+    .demo1{
+        width: 700px;
+        height: 300px;
+        float: left;
+    }
+    .demo1 video{
+        height: 300px;
+        width: 400px;
+    }
+    .demo2{
+        width: 700px;
+        height: 500px;
+        float: left;
+    }
+    .demo2 video{
+        height: 300px;
+        width: 400px;
+    }
+    </style>
+    <script>
+    function play_v1(v){
+        v.play()
+    }
+    function stop_v1(v){
+        v.pause();
+    }
+    </script>
+</head>
+<body>
+    <div>
+        <div id="v1_box" class="demo1">
+            <p>1：静音、自动播放</p>
+            <video autoplay onmouseover="play_v1(this)" onmouseleave="stop_v1(this)"  muted src="https://apd-51ee09095b705282a97083118ec47d07.v.smtcdns.com/om.tc.qq.com/AGEtsuV-HXBLeG4rie3Ylj8n3PBsE5dGpxGWruTPr3gM/B_Ui4-QEkRPfhTNlYdo0HujjFKxhFTBivUje5dM8SAL0o/svp_50200/njc_1000195_0bc3q4buaaadnuadiwem7vrrxb6eicdqgqca.f2.mp4?sdtfrom=v1010&guid=04454bb825e0bd7e&vkey=755785BB4C64EDF8B1D97CAE4F7586791FAE67172D38AFD7453290226103DA7B28E98A1A96A2B7583FFF156CE884BAEB601E2F29FCAB03720DA1AE8EBFC6174403537F21182355B4A8631B0D03A44B5C39A84A2174EACC12B97C02A66AE718B9BE3B36FEE9CC55FB54D29738A9CD2691A536FF808E5AC879E6B10942BCBC954C"></video>
+        </div>
+        <div id="v2_box" class="demo2">
+            <p>2:有声音、自动播放（至少需要点击一下文档，产生交互）</p>
+            <video autoplay onmouseover="play_v1(this)" onmouseleave="stop_v1(this)"  src="https://apd-51ee09095b705282a97083118ec47d07.v.smtcdns.com/om.tc.qq.com/AGEtsuV-HXBLeG4rie3Ylj8n3PBsE5dGpxGWruTPr3gM/B_Ui4-QEkRPfhTNlYdo0HujjFKxhFTBivUje5dM8SAL0o/svp_50200/njc_1000195_0bc3q4buaaadnuadiwem7vrrxb6eicdqgqca.f2.mp4?sdtfrom=v1010&guid=04454bb825e0bd7e&vkey=755785BB4C64EDF8B1D97CAE4F7586791FAE67172D38AFD7453290226103DA7B28E98A1A96A2B7583FFF156CE884BAEB601E2F29FCAB03720DA1AE8EBFC6174403537F21182355B4A8631B0D03A44B5C39A84A2174EACC12B97C02A66AE718B9BE3B36FEE9CC55FB54D29738A9CD2691A536FF808E5AC879E6B10942BCBC954C"></video>
+        </div>
+    </div>
+</body>
+</html>

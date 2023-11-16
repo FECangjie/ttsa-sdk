@@ -1,0 +1,144 @@
+diff --git a/node_modules/janus-typescript-client/index.d.ts b/node_modules/janus-typescript-client/index.d.ts
+index 9522324..cf30637 100644
+--- a/node_modules/janus-typescript-client/index.d.ts
++++ b/node_modules/janus-typescript-client/index.d.ts
+@@ -20,6 +20,7 @@ declare namespace JanusJS {
+     interface InitOptions {
+         debug?: boolean | 'all' | DebugLevel[];
+         callback?: Function;
++        statCallback?(online: boolean): void
+         dependencies?: Dependencies;
+     }
+ 
+@@ -138,6 +139,8 @@ declare namespace JanusJS {
+         static warn(...args: any[]): void;
+         static error(...args: any[]): void;
+         static randomString(length: number): string;
++        static statCheckId: any
++        static statCallback?(online: boolean): void
+ 
+         constructor(options: ConstructorOptions);
+ 
+diff --git a/node_modules/janus-typescript-client/lib/janus.nojquery.js b/node_modules/janus-typescript-client/lib/janus.nojquery.js
+index 911f216..41ace87 100644
+--- a/node_modules/janus-typescript-client/lib/janus.nojquery.js
++++ b/node_modules/janus-typescript-client/lib/janus.nojquery.js
+@@ -206,6 +206,7 @@ Janus.endOfCandidates = null;
+ Janus.init = function(options) {
+ 	options = options || {};
+ 	options.callback = (typeof options.callback == "function") ? options.callback : Janus.noop;
++	Janus.statCallback = options.statCallback;
+ 	if(Janus.initDone) {
+ 		// Already initialized
+ 		options.callback();
+@@ -947,6 +948,7 @@ function Janus(gatewayCallbacks) {
+ 
+ 	// Private method to destroy a session
+ 	function destroySession(callbacks) {
++		clearTimeout(Janus.statCheckId);
+ 		callbacks = callbacks || {};
+ 		// FIXME This method triggers a success even when we fail
+ 		callbacks.success = (typeof callbacks.success == "function") ? callbacks.success : Janus.noop;
+@@ -1419,6 +1421,41 @@ function Janus(gatewayCallbacks) {
+ 		});
+ 	}
+ 
++	var lastOnlineTime;
++	function checkRTCPeerConnectionStats(pc) {
++		if (!Janus.statCallback) {
++			return;
++		}
++		if (!!Janus.statCheckId) {
++			clearTimeout(Janus.statCheckId);
++		}
++		var interval = window.frameInterval || 1500;
++		Janus.statCheckId = setTimeout(function() {
++			pc.getStats()
++				.then(function(stats) {
++					stats.forEach(function (stat) {
++						if(stat && stat.kind === "video" && stat.type === "inbound-rtp"){
++							console.log('lastPacketReceivedTimestamp:', stat.lastPacketReceivedTimestamp);
++							if (!lastOnlineTime) {
++								lastOnlineTime = stat.lastPacketReceivedTimestamp;
++								checkRTCPeerConnectionStats(pc);
++								return;
++							}
++							const timeDiff = stat.lastPacketReceivedTimestamp - lastOnlineTime;
++							var online = timeDiff < interval;
++							Janus.statCallback(online);
++							if (online) {
++								lastOnlineTime = stat.lastPacketReceivedTimestamp;
++								checkRTCPeerConnectionStats(pc);
++							} else {
++								clearTimeout(Janus.statCheckId);
++							}
++						}
++					});
++				});
++		}, 1000);
++	}
++
+ 	// Private method to create a data channel
+ 	function createDataChannel(handleId, dclabel, incoming, pendingData) {
+ 		var pluginHandle = pluginHandles[handleId];
+@@ -1438,6 +1475,7 @@ function Janus(gatewayCallbacks) {
+ 			var dcState = config.dataChannel[label] ? config.dataChannel[label].readyState : "null";
+ 			Janus.log('State change on <' + label + '> data channel: ' + dcState);
+ 			if(dcState === 'open') {
++				checkRTCPeerConnectionStats(config.pc);
+ 				// Any pending messages to send?
+ 				if(config.dataChannel[label].pending && config.dataChannel[label].pending.length > 0) {
+ 					Janus.log("Sending pending messages on <" + label + ">:", config.dataChannel[label].pending.length);
+@@ -1451,6 +1489,9 @@ function Janus(gatewayCallbacks) {
+ 				// Notify the open data channel
+ 				pluginHandle.ondataopen(label);
+ 			}
++			if (dcState === 'close') {
++				clearTimeout(Janus.statCheckId);
++			}
+ 		};
+ 		var onDataChannelError = function(error) {
+ 			Janus.error('Got error on data channel:', error);
+@@ -1773,23 +1814,25 @@ function Janus(gatewayCallbacks) {
+ 				if(event.track.onended)
+ 					return;
+ 				Janus.log("Adding onended callback to track:", event.track);
+-				event.track.onended = function(ev) {
+-					Janus.log("Remote track muted/removed:", ev);
+-					if(config.remoteStream) {
+-						config.remoteStream.removeTrack(ev.target);
+-						pluginHandle.onremotestream(config.remoteStream);
+-					}
+-				};
+-				event.track.onmute = event.track.onended;
+-				event.track.onunmute = function(ev) {
+-					Janus.log("Remote track flowing again:", ev);
+-					try {
+-						config.remoteStream.addTrack(ev.target);
+-						pluginHandle.onremotestream(config.remoteStream);
+-					} catch(e) {
+-						Janus.error(e);
+-					};
+-				};
++				// TODO 网络差黑屏注释以下内容
++				// event.track.onended = function(ev) {
++				// 	Janus.log("Remote track muted/removed:", ev);
++				// 	if(config.remoteStream) {
++				// 		config.remoteStream.removeTrack(ev.target);
++				// 		pluginHandle.onremotestream(config.remoteStream);
++				// 	}
++				// };
++				// event.track.onmute = event.track.onended;
++				// event.track.onunmute = function(ev) {
++				// 	Janus.log("Remote track flowing again:", ev);
++				// 	try {
++				// 		config.remoteStream.addTrack(ev.target);
++				// 		pluginHandle.onremotestream(config.remoteStream);
++				// 	} catch(e) {
++				// 		Janus.error(e);
++				// 	};
++				// };
++				// TODO END
+ 			};
+ 		}
+ 		if(addTracks && stream) {
