@@ -1,5 +1,4 @@
-// import FTC_TTSA_PRIM from "../main";
-import FTC_TTSA_PRIM from "../mainECP";
+import FTC_TTSA_PRIM from "../main";
 import { log, throwError } from "../tools/utils";
 import Request from "../api/request";
 
@@ -43,119 +42,8 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
     const me = this;
     const reqData = Object.assign(payload, { req_type: "1" });
     log(this.tag, "env获取环境：");
-    let result = {
-      env: "https://apis.xmov.ai",
-      appServer: "",
-      janusServer: "",
-      account: {
-        username: "jiansheyinhang", // 用户名
-        app_id: "C8Dk6aAfhiWQp8s*lrDljAvg", // app id
-        app_secret: "PPWxM@1@(ZbC$Fh^FUoT8LP240Jk9C", // app secret
-        role_id: "cb963ecf57524201bcda8098f93ccf36", // role id
-      },
-    };
-    if (payload.env === "huaweiyun") {
-      result = {
-        env: "http://122.9.33.164:88",
-        appServer: "",
-        janusServer: "",
-        account: {
-          username: "husunqiang",
-          role_id: "5f0db8fa3b904b64a89a459eafcd170f",
-          app_id: "5KbEUSWiQH!qo9nHsnWLqdQM",
-          app_secret: "%55^nSz%EO62Tm8qyP#gZ#yguUiLI%",
-        },
-      };
-      this.options.account = result.account;
-      this.options.server = result.env;
-
-      this.http = new Request(result.env);
-    } else if (payload.env === "opm") {
-      result = {
-        env: "https://opm.tech.ccb.com",
-        appServer: "https://opm.tech.ccb.com",
-        janusServer: "https://opm.tech.ccb.com/janus",
-        account: {
-          username: "husunqiang", // 用户名
-          app_id: "oe@njW8nseAcI(bwnqkKTPo4", // app id
-          app_secret: "51rnf^qot0jswGoGhtZK4CS2uhE8Qs", // app secret
-          role_id: "728966b26fd94bc09714f11882806139", // role id
-        },
-      };
-      this.options.account = result.account;
-      this.options.server = result.env;
-      this.options.appServer = result.appServer;
-      this.options.janusServer = result.janusServer;
-
-      // username 随机生成
-      this.options.account.username = `${
-        result.account.username
-      }_${new Date().valueOf()}`;
-
-      this.http = new Request(result.env);
-    }
-    callback && callback(result);
-
+    callback && callback(payload.config);
     return;
-
-    if (this.ajax) {
-      const res = this.ajaxPromise.post({
-        code: BIZ_CODE.env,
-        data: reqData,
-        maskAll: false,
-      });
-
-      setTimeout(() => {
-        res.then((res) => {
-          log(this.tag, "ECP判断环境请求成功 then()");
-          console.log(res);
-          result = {
-            env: "https://apis.xmov.ai",
-            appServer: "",
-            janusServer: "",
-            account: {
-              username: "jiansheyinhang", // 用户名
-              app_id: "C8Dk6aAfhiWQp8s*lrDljAvg", // app id
-              app_secret: "PPWxM@1@(ZbC$Fh^FUoT8LP240Jk9C", // app secret
-              role_id: "cb963ecf57524201bcda8098f93ccf36", // role id
-            },
-          };
-          if (res?.plan_status) {
-            // 互联机
-            if (res?.plan_status === "opm") {
-              result = {
-                env: "https://opm.tech.ccb.com",
-                appServer: "https://opm.tech.ccb.com",
-                janusServer: "https://opm.tech.ccb.com/janus",
-                account: {
-                  username: "husunqiang", // 用户名
-                  app_id: "oe@njW8nseAcI(bwnqkKTPo4", // app id
-                  app_secret: "51rnf^qot0jswGoGhtZK4CS2uhE8Qs", // app secret
-                  role_id: "728966b26fd94bc09714f11882806139", // role id
-                },
-              };
-            }
-            // me.sendText(res?.Cnvs_Cntnt);
-          }
-
-          this.http = new Request(result.env);
-
-          this.options.account = result.account;
-          this.options.server = result.env;
-          this.options.appServer = result.appServer;
-          this.options.janusServer = result.janusServer;
-
-          // username 随机生成
-          this.options.account.username = `${
-            result.account.username
-          }_${new Date().valueOf()}`;
-
-          callback && callback(result);
-        });
-      });
-
-      return result;
-    }
   }
 
   async register(payload: any = {}, callback: (res) => void) {
@@ -200,9 +88,8 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
         },
       })
       .then((res) => {
-        console.log("==========");
         console.log(res);
-        return res && res.Ssn_ID
+        return res && res.Ssn_ID;
       })
       .catch((err) => {
         log(this.tag, JSON.stringify(err));
@@ -222,15 +109,13 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
         },
       })
       .then((res) => {
-        console.log("==========");
         console.log(res);
-        return res
+        return res;
       })
       .catch((err) => {
         log(this.tag, JSON.stringify(err));
       });
   }
-
 
   // C6环境注册接口
   async asrC6(data) {
@@ -247,7 +132,7 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
       .then((res) => {
         console.log("asr==========");
         console.log(res);
-        return res
+        return res;
       })
       .catch((err) => {
         log(this.tag, JSON.stringify(err));
@@ -259,7 +144,7 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
    * IBizChat
    * Aply_Mnt_TpCd 申请 维护类型代码
    * Tx_TpCd
-   *  Prblm_Bl_ID 问题描述
+   * Prblm_Bl_ID 问题描述
    * Ssn_ID
    * Prblm_Dsc
    * Bsn_ID_No
@@ -334,7 +219,6 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
         },
       })
       .then((res) => {
-        console.log("==========");
         console.log(res);
       })
       .catch((err) => {
@@ -394,7 +278,6 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
         },
       })
       .then((res) => {
-        console.log("==========");
         console.log(res);
         return res;
       })
@@ -409,37 +292,8 @@ class FTC_TTSA_BIZ extends FTC_TTSA_PRIM {
    * @returns
    */
   async predict(actions: string) {
-    const me = this;
-    log(this.tag, "语音 predict");
+    log(this.tag, "语音 predict，s功能暂无");
     console.log(actions);
-
-    return this.http
-      .send({
-        method: "POST",
-        path: "http://13.115.19.0:9000/chat",
-        // path: "http://122.9.33.164:88/predict", // 华为云 自研
-        // path: "https://fangyi.shiyunidt.cn/szr/predict",
-        // path: FN_GET_URL(this.options.bizMode, "predict"),
-        body: {
-          // dialog_acts: actions,
-          data: actions,
-        },
-      })
-      .then((res) => {
-        console.log("==========");
-        console.log(res);
-        me.sendText(res && res.content && res.content.join("") || '您好，我不明白您的意思');
-        return {
-          results: res && res.content && res.content.join("") || '您好，我不明白您的意思',
-        };
-      })
-      .catch((err) => {
-        log(this.tag, JSON.stringify(err));
-        me.sendText('您好，我不明白您的意思');
-        return {
-          results: '您好，我不明白您的意思',
-        };
-      });
   }
 }
 

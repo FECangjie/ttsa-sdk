@@ -1,14 +1,13 @@
 import io from "socket.io-client/dist/socket.io";
 import adapter from "webrtc-adapter";
-// import adapter from "./lib/adapter";
 import { HmacMD5 } from "crypto-es/lib/md5";
 
 import pkg from "../package.json";
 
-import { log, throwError } from "./tools/utils";
+import { formatDate, formatNumber, log, throwError } from "./tools/utils";
 import Request from "./api/request";
 import RequestTest from "./api/requestTest";
-import { SERVER_HOST, API_ECP_URL, BIZ_CODE } from "./contants";
+import { SERVER_HOST, API_ECP_URL, BIZ_CODE, FN_GET_URL } from "./contants";
 import getWebRtcClient from "./webrtc-client";
 import PromiseAjaxHelper from "./helper/promiseHelper";
 
@@ -29,26 +28,32 @@ class FTC_TTSA {
 
   private containerEl!: HTMLDivElement;
   protected http!: Request | RequestTest;
-  protected httpRequest!: Request | RequestTest;
   protected ajax?: any = null;
   protected ajaxPromise?: any = null;
-  protected token: IToken | null = null;
+  protected token: IToken | any = null;
   protected bizType: string | null = null;
   private room: IRoom | null = null;
 
   private webrtcClient!: any;
   private widgetCallback: Function = (data: any) => console.log(this.tag, data);
+  private errorCallback: Function = (error: any) =>
+    console.log(this.tag, error);
   private widgetSocket: any = null;
+  private voiceQueue: any = {
+    // ws的事件队列
+    start: 0,
+    end: 0,
+  };
 
   // 用于帧间隔判断是否离线，每秒检测，帧间隔大于 1500ms 判断为离线
   // (online: boolean) => console.log(this.tag, online)
   private webrtcCallback?: Function;
 
   constructor(options: IOptions) {
-    const { width, height, widgetCallback, webrtcCallback } = options; // 视频流宽高
-    this.options = options;
-
+    const { width, height, widgetCallback, webrtcCallback, errorCallback } =
+      options; // 视频流宽高
     this.widgetCallback = widgetCallback;
+    this.errorCallback = errorCallback;
     this.webrtcCallback = webrtcCallback;
 
     const containerEle = document.querySelector(
@@ -61,12 +66,21 @@ class FTC_TTSA {
     containerEle.style.height = `${height}px`;
     this.containerEl = containerEle;
 
+    this.voiceQueue = {
+      start: 0,
+      end: 0,
+    };
+
     this.options = options;
+    // username 随机生成
+    this.options.account.username = `${
+      options.account.username
+    }_${new Date().valueOf()}`;
+
     if (options.bizMode === "test") {
       this.http = new RequestTest(options.server || SERVER_HOST);
     } else {
-      this.httpRequest = new Request(options.server || SERVER_HOST);
-      // this.http = new RequestTest(options.server || SERVER_HOST);
+      this.http = new Request(options.server || SERVER_HOST);
     }
 
     if (options.ajax) {
@@ -77,19 +91,50 @@ class FTC_TTSA {
     }
   }
 
+  // setup() {
+  //   return this.openRoom();
+  // }
+
   setup() {
+    const me = this;
+    // 开始时间
+    window.__setupTime = new Date().valueOf();
     return this.openRoom()
       .then((room: IRoom | any) => {
-        this.room = room;
+        this.room = {
+          ...room,
+          room_id: +location.search.split("roomid=")[1] || room.room_id,
+        };
         const webrtcClient = getWebRtcClient(this.containerEl);
         this.webrtcClient = webrtcClient;
-        return webrtcClient.setup(room, this.webrtcCallback);
+        return webrtcClient.setup(this.room, this.webrtcCallback, me.options);
       })
-      .then(() => this.setupWidgetSocket())
+      .then(async () => {
+        await this.setupWidgetSocket();
+      })
       .catch((err) => {
+        // 链接异常
+        this.errorCallback && this.errorCallback(err, "open_error");
         throwError(this.tag, JSON.stringify(err));
         return Promise.reject(err);
       });
+  }
+
+  private async openRoom() {
+    const me = this;
+    if (this.options.account) {
+      return this.closeRoom()
+        .then(() => me.loginAccount())
+        .then((token: IToken) => {
+          this.token = token;
+          return this.openAccount();
+        })
+        .catch((err: any) => {
+          // 链接异常
+          this.errorCallback && this.errorCallback(err, "open_error");
+          console.log(err);
+        });
+    }
   }
 
   protected getSecretId(): string {
@@ -107,22 +152,40 @@ class FTC_TTSA {
     return "";
   }
 
-  private async openRoom() {
-    const me = this;
-    if (this.options.account) {
-      return this.closeRoom()
-        .then(() => me.loginAccount())
-        .then((token: IToken) => {
-          this.token = token;
-          return this.openAccount();
-        });
-    }
-  }
+  // private async openRoom() {
+  //   const me = this;
+  //   if (this.options.account) {
+  //     return this.closeRoom().then(() => {
+  //       return me.loginAccount().then((token: any) => {
+  //         me.token = token;
+  //         me.openAccount(me.token).then((room) => {
+  //           const roomInfo: IRoom = room.data;
+  //           console.log("room data =====>");
+  //           console.log(roomInfo);
+  //           me.room = roomInfo;
+  //           const webrtcClient = getWebRtcClient(me.containerEl);
+  //           me.webrtcClient = webrtcClient;
+  //           return webrtcClient
+  //             .setup(roomInfo, me.webrtcCallback)
+  //             .then(() => {
+  //               log(me.tag, "【【【 ws拉流 】】】");
+  //               me.setupWidgetSocket();
+  //             })
+  //             .catch((err) => {
+  //               throwError(me.tag, JSON.stringify(err));
+  //               return Promise.reject(err);
+  //             });
+  //         });
+  //       });
+  //     });
+  //   }
+  // }
 
   private async loginAccount(): Promise<IToken> {
     const {
       account: { username, app_id, app_secret },
     } = this.options;
+    const me = this;
 
     const now_time = parseInt(`${+Date.now() / 1000}`, 10);
     const key1 = app_id + app_secret + username;
@@ -131,46 +194,9 @@ class FTC_TTSA {
     const md5 = HmacMD5(key2, key1).toString();
     const accessToken = window.btoa(md5);
 
-    if (this.ajax) {
-      const result = this.ajax({
-        url: API_ECP_URL,
-        safe: true,
-        maskAll: true,
-        data: {
-          _fw_service_id: "simpleTransaction",
-          transaction_id: BIZ_CODE.login,
-          jsonData: JSON.stringify({
-            Data_Cntnt: handleReqData({
-              username,
-              app_id,
-              access_token: accessToken,
-              ts: now_time,
-            }),
-          }),
-          jsonClass: "java.util.Map",
-        },
-        success: (res) => {
-          console.log("login success =====>");
-          if (res?.BK_STATUS === "00") {
-            this.token = res?.Data_Enqr_Rslt;
-            console.log(this.token);
-          }
-        },
-        failure: (error) => {
-          console.log(error);
-        },
-      });
-      result.then((data) => {
-        console.log("login then =====>");
-        console.log(data);
-      });
-
-      return result?.Data_Enqr_Rslt;
-    }
-
     const res = await this.http.send({
       method: "POST",
-      path: "/user/auth/eaccess_token_login/",
+      path: FN_GET_URL(this.options.bizMode, "login"),
       body: {
         username,
         app_id,
@@ -178,8 +204,8 @@ class FTC_TTSA {
         ts: now_time,
       },
     });
-
     if (res.error_code) {
+      this.errorCallback && this.errorCallback(res.error_reason, "login_error");
       throwError(this.tag, "login() error:", res.error_reason);
       return Promise.reject(res);
     }
@@ -202,36 +228,9 @@ class FTC_TTSA {
       { user_id, key, secret_id, resolution, room_type: "janus" },
       config
     );
-    if (this.ajax) {
-      const result = this.ajax({
-        url: API_ECP_URL,
-        safe: true,
-        maskAll: true,
-        data: {
-          _fw_service_id: "simpleTransaction",
-          transaction_id: BIZ_CODE.open,
-          jsonData: JSON.stringify({
-            Data_Cntnt: handleReqData(data),
-          }),
-          jsonClass: "java.util.Map",
-        },
-        success: (res) => {
-          if (res?.BK_STATUS === "00") {
-            console.log(res);
-          }
-        },
-        failure: (error) => {
-          console.log(error);
-        },
-      });
-      console.log("login then =====>");
-      console.log(result);
-
-      return result;
-    }
     const res = await this.http.send({
       method: "POST",
-      path: "/api/v1/dmp/ttsa/open/",
+      path: FN_GET_URL(this.options.bizMode, "open"),
       body: data,
     });
     if (res.error_code) {
@@ -241,14 +240,46 @@ class FTC_TTSA {
     return res.data;
   }
 
-  async sendText(ssml: string) {
+  async sendText(
+    ssml: string,
+    opt?: {
+      xml?: boolean;
+      type?: string[] | string;
+    }
+  ) {
     if (!this.token) {
       throwError(this.tag, "未登录");
+      return;
+    }
+    if (!ssml) {
       return;
     }
     log(this.tag, "sendText()");
     const secret_id = this.getSecretId();
     const { user_id, key } = this.token;
+    let text = ssml;
+
+    if (opt?.xml) {
+      const regex = /<[^>]*>/g;
+      text = ssml.replace(regex, "");
+    }
+
+    // 过滤特殊字符
+    const regFilter = /&nbsp;|<br>|<br \/>|<HTML>|<\/HTML>/g;
+    text = text.replace(regFilter, "，");
+
+    // 添加停顿
+    const reg = /(《|》|:|：|——)/g;
+    text = text.replace(reg, "$1，");
+
+    if (opt?.type?.includes("autoAction")) {
+      const actionSsml = await this.autoAction(text);
+      text = actionSsml.data || text;
+    }
+
+    text = formatNumber(text);
+    // text = formatDate(text);
+
     const data: LooseObject = {
       async: true,
       interrupt: true,
@@ -256,21 +287,26 @@ class FTC_TTSA {
       key,
       secret_id,
       query_text: "ttsa",
-      text: ssml,
+      text,
     };
 
     return this.http
       .send({
         method: "POST",
-        path: "/api/v1/dmp/ttsa/ttsa/",
+        path: FN_GET_URL(this.options.bizMode, "ttsa"),
         body: data,
       })
       .then((res) => {
         if (res.error_code) {
+          this.errorCallback &&
+            this.errorCallback(res.error_reason, "sendText_error");
           throwError(this.tag, "sendText() error:", res.error_reason);
+          // 链接异常
         }
       })
       .catch((err) => {
+        // 链接异常
+        this.errorCallback && this.errorCallback(err);
         log(this.tag, JSON.stringify(err));
       });
   }
@@ -299,10 +335,10 @@ class FTC_TTSA {
       secret_id,
       ...obj,
     };
-    return this.httpRequest
+    return this.http
       .send({
         method: "POST",
-        path: "/api/v1/dmp/ttsa/chat/",
+        path: FN_GET_URL(this.options.bizMode, "chat"),
         body: data,
       })
       .then((res) => {
@@ -313,10 +349,15 @@ class FTC_TTSA {
           },
         });
         if (res.error_code) {
+          this.errorCallback &&
+            this.errorCallback(res.error_reason, "chat_error");
           throwError(this.tag, "chat() error:", res.error_reason);
         }
+        return res;
       })
       .catch((err) => {
+        // 链接异常
+        this.errorCallback && this.errorCallback(err);
         log(this.tag, JSON.stringify(err));
       });
   }
@@ -330,11 +371,13 @@ class FTC_TTSA {
     return this.http
       .send({
         method: "POST",
-        path: "/api/v1/dmp/ttsa/interrupt/",
+        path: FN_GET_URL(this.options.bizMode, "interrupt"),
         body: { user_id, key },
       })
       .then((res) => {
         if (res.error_code) {
+          this.errorCallback &&
+            this.errorCallback(res.error_reason, "interrupt_error");
           throwError(this.tag, "interrupt() error:", res.error_reason);
         }
       })
@@ -359,15 +402,19 @@ class FTC_TTSA {
     return this.http
       .send({
         method: "POST",
-        path: "/api/v1/dmp/ttsa/mute/",
+        path: FN_GET_URL(this.options.bizMode, "mute"),
         body: data,
       })
       .then((res) => {
         if (res.error_code) {
+          this.errorCallback &&
+            this.errorCallback(res.error_reason, "mute_error");
           throwError(this.tag, "mute() error:", res.error_reason);
         }
       })
       .catch((err) => {
+        // 链接异常
+        this.errorCallback && this.errorCallback(err);
         log(this.tag, JSON.stringify(err));
       });
   }
@@ -379,25 +426,48 @@ class FTC_TTSA {
     }
     const secret_id = this.getSecretId();
     const { user_id, key } = this.token;
+    const defaultConfig = {
+      video: true,
+      ...config,
+    };
+    console.log("defaultConfig");
+    console.log(defaultConfig);
     const data: LooseObject = {
       user_id,
       key,
       secret_id,
-      ...config,
+      ...defaultConfig,
     };
+    const publish = {
+      request: "configure",
+      audio: true,
+      video: defaultConfig.video,
+      data: true,
+    };
+    const videoDom = this.containerEl.querySelector(`#ttsa-video`);
+    const videoStyle = `display:${
+      defaultConfig.video ? "block" : "none"
+    };width:100%;height:100%;`;
+
+    await this.webrtcClient.remoteFeed.send({ message: publish });
+    videoDom?.setAttribute("style", videoStyle);
 
     return this.http
       .send({
         method: "POST",
-        path: "/api/v1/dmp/ttsa/ue4_config/",
+        path: FN_GET_URL(this.options.bizMode, "ue4_config"),
         body: data,
       })
       .then((res) => {
         if (res.error_code) {
+          this.errorCallback &&
+            this.errorCallback(res.error_reason, "roomConfig_error");
           throwError(this.tag, "roomConfig() error:", res.error_reason);
         }
       })
       .catch((err) => {
+        // 链接异常
+        this.errorCallback && this.errorCallback(err);
         log(this.tag, JSON.stringify(err));
       });
   }
@@ -421,16 +491,67 @@ class FTC_TTSA {
     return this.http
       .send({
         method: "POST",
-        path: "/api/v1/dmp/ttsa/close/",
+        path: FN_GET_URL(this.options.bizMode, "close"),
         body: { user_id, key, room_id },
       })
       .then((res) => {
         if (res.error_code) {
+          this.errorCallback &&
+            this.errorCallback(res.error_reason, "closeRoom_error");
           throwError(this.tag, "closeRoom() error:", res.error_reason);
         }
         this.token = null;
         this.room = null;
       });
+  }
+
+  // 自动生成动作
+  async autoAction(text: string) {
+    if (!this.token) {
+      return Promise.resolve();
+    }
+
+    log(this.tag, "autoAction()");
+    const { user_id, key } = this.token;
+
+    const data = {
+      text: text,
+      digital_id: 1,
+      // digital_id: 1778,
+      insert_arm_action: true,
+      keep_existent_arm_action: true,
+      insert_head_action: false,
+      keep_existent_head_action: false,
+    };
+
+    return this.http
+      .send({
+        method: "POST",
+        path: FN_GET_URL(this.options.bizMode, "action"),
+        body: data,
+        Authorization: `token ${user_id} ${key}`,
+      })
+      .then((res) => {
+        return res;
+      });
+  }
+
+  // 暂停播放
+  async pause(play: boolean) {
+    if (!this.token) {
+      return Promise.resolve();
+    }
+
+    log(this.tag, "pause()");
+    // var publish = { request: play ? "start" : "pause"};
+    var publish = {
+      request: "configure",
+      audio: true,
+      video: false,
+      data: true,
+    };
+
+    return await this.webrtcClient.remoteFeed.send({ message: publish });
   }
 
   setupWidgetSocket(): Promise<any> {
@@ -443,17 +564,17 @@ class FTC_TTSA {
 
       const { user_id } = this.token;
       const { app_server_info } = this.room;
+      const { appServer } = this.options;
 
       // @ts-ignore
-      // this.widgetSocket = io(app_server_info);
-      this.widgetSocket = io("https://10.208.53.5:31118");
+      this.widgetSocket = io(appServer || app_server_info);
 
       if (!this.widgetSocket) {
         return;
       }
 
       this.widgetSocket.on("connect", () => {
-        log(tag, `${app_server_info} connected`);
+        log(tag, `${appServer || app_server_info} connected`);
         if (this.widgetSocket && !!this.token) {
           const emitPayload = { user_id, session_id: this.token.session_id };
           this.widgetSocket.emit("session_info", emitPayload);
@@ -461,9 +582,28 @@ class FTC_TTSA {
         }
       });
       this.widgetSocket.on("ui_callback", (data: any) => {
-        this.widgetCallback(data);
+        // 这里能补充一些数据
+        const callback_info = data.callback_info || {};
+        let id = 0;
+        if (callback_info.type === "voice_end") {
+          id = this.voiceQueue.start;
+          this.voiceQueue.start++;
+        } else if (callback_info.type === "voice_start") {
+          id = this.voiceQueue.end;
+          this.voiceQueue.end++;
+        }
+        this.widgetCallback({
+          ...data,
+          id,
+          callback_info: { ...callback_info },
+        });
       });
       this.widgetSocket.on("error", (err: Error) => {
+        throwError(tag, err);
+      });
+      // 连接错误
+      this.widgetSocket.on("connect_error", (err) => {
+        this.errorCallback && this.errorCallback(err, "widgetSocket_error");
         throwError(tag, err);
       });
       this.widgetSocket.on("disconnect", (reason: any) => {
@@ -480,3 +620,12 @@ console.log(`[FTC TTSA SDK v${Version}] loaded`);
 window.FTC_TTSA_PRIM = FTC_TTSA;
 
 export default FTC_TTSA;
+
+/**
+ * 排查流程：
+ * 1. 接口数据
+ * 2. sdp一致性
+ * 3. RTC方法兼容性
+ * 4. session对齐
+ * 5.
+ */

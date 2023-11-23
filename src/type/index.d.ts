@@ -25,6 +25,7 @@ interface IOptions {
   };
   bizMode?: string; // sdk应用场景模式
   ajax: Function;
+  
   // PJF?: IPJF // 员工APP PJF框架能力对象
 }
 
