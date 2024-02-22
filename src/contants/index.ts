@@ -1,6 +1,4 @@
-// export const SERVER_HOST = "http://192.168.0.69:32106"; // 华为云
-export const SERVER_HOST = "http://10.208.53.5:31118"; // c6
-// export const SERVER_HOST = "http://128.192.142.173:8101"; // c6
+export const SERVER_HOST = ""; // c6
 
 export const API_BIZ_REGISTER = "/business/register/"; // 注册接口
 export const API_BIZ_CHAT = "/business/chat/"; // 聊天接口
@@ -28,7 +26,7 @@ export const API = {
   asrOld: "/asr/",
   asr: "/asr/getResult/",
 
-  login: '/user/auth/eaccess_token_login/',
+  login: "/user/auth/eaccess_token_login/",
   chat: "/api/v1/dmp/ttsa/chat/",
   interrupt: "/api/v1/dmp/ttsa/interrupt/",
   mute: "/api/v1/dmp/ttsa/mute/",
@@ -44,7 +42,6 @@ export const API = {
   chatC6: "/szr/business/chat/",
   logoutC6: "/szr/business/logout/",
   asrC6: "/szr/asr/getResult/",
-
 };
 
 export const FN_GET_URL = (bizMode, type) => {

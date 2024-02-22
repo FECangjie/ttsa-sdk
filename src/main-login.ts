@@ -73,9 +73,9 @@ class FTC_TTSA {
 
     this.options = options;
     // username 随机生成
-    this.options.account.username = `${
-      options.account.username
-    }_${new Date().valueOf()}`;
+    // this.options.account.username = `${
+    //   options.account.username
+    // }_${new Date().valueOf()}`;
 
     if (options.bizMode === "test") {
       this.http = new RequestTest(options.server || SERVER_HOST);
@@ -187,7 +187,7 @@ class FTC_TTSA {
     } = this.options;
     const me = this;
 
-    const now_time = parseInt(`${+Date.now() / 1000}`, 10);
+    const now_time = 1701070937 || parseInt(`${+Date.now() / 1000}`, 10);
     const key1 = app_id + app_secret + username;
     const key2 = now_time + "";
 

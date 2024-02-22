@@ -85,20 +85,22 @@
         // },
 
         // opm
-        account: {
-          username: "husunqiang", // 用户名
-          app_id: "oe@njW8nseAcI(bwnqkKTPo4", // app id
-          app_secret: "51rnf^qot0jswGoGhtZK4CS2uhE8Qs", // app secret
-          role_id: "728966b26fd94bc09714f11882806139", // role id
-        },
+        // account: {
+        //   access_token: "mEwNTU3MzEzMzY2ZTE4MGUyMWZkMTNjMDEyZTEzN2I=",
+        //   now_time: 1701070937,
+        //   username: "husunqiang_1701070937", // 用户名
+        //   app_id: "oe@njW8nseAcI(bwnqkKTPo4", // app id
+        //   app_secret: "51rnf^qot0jswGoGhtZK4CS2uhE8Qs", // app secret
+        //   role_id: "2648c3379fac4ce3b70f3fd2b82a2c97", // role id
+        // },
 
         // opm 男数字人
-        account: {
-          username: "husunqiang", // 用户名
-          app_id: "oe@njW8nseAcI(bwnqkKTPo4", // app id
-          app_secret: "51rnf^qot0jswGoGhtZK4CS2uhE8Qs", // app secret
-          role_id: "48aee778c29f4d2db8fa573e63bb8cc6", // role id
-        },
+        // account: {
+        //   username: "husunqiang_1701070937", // 用户名
+        //   app_id: "oe@njW8nseAcI(bwnqkKTPo4", // app id
+        //   app_secret: "51rnf^qot0jswGoGhtZK4CS2uhE8Qs", // app secret
+        //   role_id: "2648c3379fac4ce3b70f3fd2b82a2c97", // role id
+        // },
 
         // 测试用
         // account: {
@@ -122,13 +124,6 @@
         //   app_secret: "51rnf^qot0jswGoGhtZK4CS2uhE8Qs", // app secret
         //   role_id: "9a76667120254178b45551f5e45d2913", // role id
         // },
-        // 小应 xmov
-        // account: {
-        //   username: "jiansheyinhang111", // 用户名
-        //   app_id: "C8Dk6aAfhiWQp8s*lrDljAvg", // app id
-        //   app_secret: "PPWxM@1@(ZbC$Fh^FUoT8LP240Jk9C", // app secret
-        //   role_id: "cb963ecf57524201bcda8098f93ccf36", // role id
-        // },
 
         // account: {
         //   username: "yuanyinzhongxin", // 用户名
@@ -136,8 +131,6 @@
         //   app_secret: "Z(tOJDYOVCE3h$SY1!D7gmTzt*AdLQ", // app secret
         //   role_id: "5c4994e66dbe4357adc706e8edb11a60", // role id
         // },
-
-        // server: "https://apis.xmov.ai",
 
         // 华为云
         // server: "http://122.9.33.164:8080",
@@ -211,7 +204,13 @@
           },
           async () => {
             try {
-              await instanceTTSA.setup();
+              await instanceTTSA.setup({
+                access_token: "ZjBmOWY4MGM5ODlkM2I0M2JjNDZlZjNhMjdjY2Y2NTU=",
+                now_time: 1701072014,
+                username: "husunqiang_1701072014", // 用户名
+                app_id: "oe@njW8nseAcI(bwnqkKTPo4", // app id
+                role_id: "2648c3379fac4ce3b70f3fd2b82a2c97", // role id
+              });
               // instanceTTSA.mute(false);
               instanceTTSA.sendText("你好，我是您的智能客服助理", "autoAction");
             } catch (error) {}
@@ -233,7 +232,7 @@
         // const ssml = "你好12345abcdef你好";
         // const text = "UAAP你好12345诶批批 亿超人 abcdef你好";
         const text =
-          '<speak sub-title=\"off\" pitch=\"1\" speed=\"1\" volume=\"1\"><subtitle-style><![CDATA[{}]]></subtitle-style>学而致知，行而致远，更是代表着我们<ue4event><action-image>https://opm.tech.ccb.com/xmov-vhop//action/harry_show/image/harry_show_OnlyAction_S010.jpg</action-image><action-name>欢迎大家双手</action-name><action-video>https://opm.tech.ccb.com/xmov-vhop//action/harry_show/video/harry_show_OnlyAction_S010.mp4</action-video><data><action>harry_show_OnlyAction_S010</action><start_frame>0</start_frame><end_frame>132</end_frame><pose_include_step>0</pose_include_step><rate>1</rate><follow>true</follow></data><duration>2.2</duration><icon>special</icon><type>action</type><user-type>user_action</user-type><visible>true</visible></ue4event>对建行数字人服务的美好期待。</speak>';
+          '<speak sub-title="off" pitch="1" speed="1" volume="1"><subtitle-style><![CDATA[{}]]></subtitle-style>学而致知，行而致远，更是代表着我们<ue4event><action-name>欢迎大家双手</action-name><data><action>harry_show_OnlyAction_S010</action><start_frame>0</start_frame><end_frame>132</end_frame><pose_include_step>0</pose_include_step><rate>1</rate><follow>true</follow></data><duration>2.2</duration><icon>special</icon><type>action</type><user-type>user_action</user-type><visible>true</visible></ue4event>对建行数字人服务的美好期待。</speak>';
 
         try {
           // const actionSsml = await instanceTTSA.autoAction(text);

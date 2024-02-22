@@ -10715,7 +10715,6 @@ var ze = (function (e) {
               Object.assign(e, { req_type: "1" }),
               Re(this.tag, "env获取环境："),
               (n = {
-                env: "https://apis.xmov.ai",
                 appServer: "",
                 janusServer: "",
                 account: {

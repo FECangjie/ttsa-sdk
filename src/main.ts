@@ -70,12 +70,7 @@ class FTC_TTSA {
       start: 0,
       end: 0,
     };
-
     this.options = options;
-    // username 随机生成
-    this.options.account.username = `${
-      options.account.username
-    }_${new Date().valueOf()}`;
 
     if (options.bizMode === "test") {
       this.http = new RequestTest(options.server || SERVER_HOST);
@@ -95,8 +90,13 @@ class FTC_TTSA {
   //   return this.openRoom();
   // }
 
-  setup() {
+  setup(loginOptions: ILoginOptions) {
     const me = this;
+    if (!loginOptions) {
+      throwError(this.tag, "缺少登陆信息");
+      return Promise.reject("缺少登陆信息");
+    }
+    me.options.account = loginOptions;
     // 开始时间
     window.__setupTime = new Date().valueOf();
     return this.openRoom()
@@ -183,30 +183,21 @@ class FTC_TTSA {
 
   private async loginAccount(): Promise<IToken> {
     const {
-      account: { username, app_id, app_secret },
+      account: { username, app_id, now_time, access_token },
     } = this.options;
-    const me = this;
-
-    const now_time = parseInt(`${+Date.now() / 1000}`, 10);
-    const key1 = app_id + app_secret + username;
-    const key2 = now_time + "";
-
-    const md5 = HmacMD5(key2, key1).toString();
-    const accessToken = window.btoa(md5);
-
     const res = await this.http.send({
       method: "POST",
       path: FN_GET_URL(this.options.bizMode, "login"),
       body: {
         username,
         app_id,
-        access_token: accessToken,
+        access_token,
         ts: now_time,
       },
     });
     if (res.error_code) {
       this.errorCallback && this.errorCallback(res.error_reason, "login_error");
-      throwError(this.tag, "login() error:", res.error_reason);
+      throwError(this.tag, "login() error: 登陆鉴权失败");
       return Promise.reject(res);
     }
     return res;

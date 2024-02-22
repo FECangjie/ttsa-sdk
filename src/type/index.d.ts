@@ -5,12 +5,7 @@ interface IOptions {
   janusServer: string;
   width: number;
   height: number;
-  account: {
-    username: string;
-    app_id: string;
-    app_secret: string;
-    role_id?: string;
-  };
+  account: ILoginOptions;
   widgetCallback: Function;
   errorCallback: Function;
   webrtcCallback?: Function;
@@ -25,7 +20,7 @@ interface IOptions {
   };
   bizMode?: string; // sdk应用场景模式
   ajax: Function;
-  
+
   // PJF?: IPJF // 员工APP PJF框架能力对象
 }
 
@@ -80,4 +75,13 @@ declare module "*.json" {
 interface Window {
   __setupTime: number;
   __onVideoLoadedDataTime: number;
+}
+
+interface ILoginOptions {
+  username: string;
+  app_id: string;
+  app_secret?: string; // 2.0后废弃
+  role_id: string;
+  access_token: string;
+  now_time: number;
 }
